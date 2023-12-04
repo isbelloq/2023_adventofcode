@@ -1,7 +1,9 @@
 """Day 2: Cube Conundrum"""
 
-import argparse
+from functools import reduce
+from operator import mul
 from typing import Dict, Generator, Tuple, List
+import argparse
 
 MAX_CUBE_CONUNDRUM = {
     "red": 12,
@@ -57,6 +59,34 @@ def detect_possible_games(data: Tuple[int, List[Dict[str, int]]]) -> int:
     return data_id
 
 
+def power_set_of_cubes(data: Tuple[int, List[Dict[str, int]]]) -> int:
+    """
+    Calculate the power set of cubes
+
+    Parameters
+    ----------
+    data : Tuple[int, List[Dict[str, int]]]
+        Game id and records
+
+    Returns
+    -------
+    int
+        Power set of cubes
+    """
+    fewest_number_of_cubes = {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    }
+
+    for game_record in data[1]:
+        for color, number in game_record.items():
+            if number > fewest_number_of_cubes[color]:
+                fewest_number_of_cubes[color] = number
+
+    return reduce(mul, fewest_number_of_cubes.values())
+
+
 def data_reader(path: str) -> Generator:
     """
     Read data from file
@@ -83,7 +113,12 @@ if __name__ == "__main__":
 
     DATA_PATH = "day_02/test_data" if args.test else "day_02/data"
 
+    # Part 1
     records_parser = map(data_parse, data_reader(DATA_PATH))
     sum_id_possible_games = sum(map(detect_possible_games, records_parser))
+    print(f"Part 1: sum_id_possible_games = {sum_id_possible_games}")
 
-    print(sum_id_possible_games)
+    # Part 2
+    records_parser = map(data_parse, data_reader(DATA_PATH))
+    sum_power = sum(map(power_set_of_cubes, records_parser))
+    print(f"Part 2: sum_power = {sum_power}")
