@@ -1,67 +1,84 @@
 """Day 3: Gear Ratios"""
+
+from operator import mul
+from typing import Dict, Generator, List, Tuple
 import argparse
-from typing import List, Tuple, Generator
 import linecache
 import re
 
 DATA_PATH: str = ""
-TOTAL_LINES: int = 0
-MAX_RIGHT: int = 0
 
 
-def extract_numbers(data: str, line_number: int) -> List[Tuple[int]] | None:
+def extract_elements(data: str, line_number: int, regex: str) -> List[Tuple[int | str]]:
     """
-    Extract a list with numbers and their coordinates from a string
+    Extract a list with string and their coordinates from a string
 
     Parameters
     ----------
     data : str
-        Input data
+        Input data.
     line_number : int
-        Line number
+        Line number.
+    regex : str
+        Regex to extract elements.
 
     Returns
     -------
-    List[Tuple[int]] | None
-        List with numbers and their coordinates
+    List[Tuple[int | str]]
+        List with elements and their coordinates.
     """
-    regex_digist = list(re.finditer(r"\d+", data))
+    regex_digist = list(re.finditer(regex, data))
     if regex_digist:
-        return [(int(match.group()), line_number, match.start(), match.end()) for match in regex_digist]
+        return [(match.group(), line_number, match.start(), match.end()) for match in regex_digist]
+    else:
+        return []
 
 
-def validate_number(number: Tuple[int]) -> int:
+def add_numbers_in_gears(gears: Dict[Tuple[int | str], List]) -> Dict[Tuple[int | str], List]:
     """
-    Validate if number is valid based on surrounding characters
+    Add numbers in gears dictionary.
 
     Parameters
     ----------
-    number : Tuple[int]
-        Number and its coordinates
+    gears : Dict[Tuple[int  |  str], List]
+        Gears dictionary.
+
+    Returns
+    -------
+    Dict[Tuple[int | str], List]
+        Gears dictionary with numbers.
+    """
+
+    # Read lines
+    for gear in gears:
+        columns_gear = set(range(gear[2] - 1, gear[3] + 1))
+        for lines in range(gear[1] - 1, gear[1] + 2):
+            data = linecache.getline(DATA_PATH, lines).strip()
+            numbers = extract_elements(data, lines, r"\d+")
+            for number in numbers:
+                columns_numer = set(range(number[2], number[3]))
+                if columns_gear.intersection(columns_numer):
+                    gears[gear].append(number)
+
+    return gears
+
+
+def extract_gears(numbers: List[Tuple[str | int]]) -> int:
+    """
+    Extract gears from numbers
+
+    Parameters
+    ----------
+    numbers : List[Tuple[str  |  int]]
+        Numbers in gear.
 
     Returns
     -------
     int
-        Valid number or 0 if not valid
+        Number of gears.
     """
-    upper_read_line = number[1] - 1
-    lower_read_line = number[1] + 1
-
-    left_read_line = number[2] if number[2] == 0 else number[2] - 1
-    right_read_line = number[3] if number[3] == MAX_RIGHT else number[3] + 1
-
-    # Read lines
-
-    upper_line = "" if upper_read_line <= 1 else linecache.getline(DATA_PATH, upper_read_line).strip()
-    mid_line = linecache.getline(DATA_PATH, number[1]).strip()
-    lower_line = "" if lower_read_line >= TOTAL_LINES else linecache.getline(DATA_PATH, lower_read_line).strip()
-
-    validation_string = upper_line[left_read_line: right_read_line]\
-        + mid_line[left_read_line: right_read_line]\
-        + lower_line[left_read_line: right_read_line]
-
-    if re.search(r"[^\d\.]", validation_string):
-        return number[0]
+    if len(numbers) == 2:
+        return mul(*map(lambda x: int(x[0]), numbers))
     else:
         return 0
 
@@ -92,17 +109,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     DATA_PATH = "day_03/test_data" if args.test else "day_03/data"
 
-    with open(DATA_PATH, 'r') as file:
-        TOTAL_LINES = len(file.readlines())
+    CUMULATIVE_SUM = 0
+    GEARS = dict()
+    for l_number, line_row in data_reader(DATA_PATH):
+        gears_coordinates = extract_elements(line_row, l_number, r"\*")
+        tmp_gears = {gear: [] for gear in gears_coordinates}
+        GEARS.update(tmp_gears)
 
-    with open(DATA_PATH, 'r') as file:
-        MAX_RIGHT = len(file.readlines()[0].strip())
+    GEARS = add_numbers_in_gears(GEARS)
 
-    cumulative_sum = 0
-    for l_number, line in data_reader(DATA_PATH):
-        numbers_coordinates = extract_numbers(line, l_number)
-        if numbers_coordinates:
-            for number_coordinates in numbers_coordinates:
-                cumulative_sum += validate_number(number_coordinates)
-
-    print(cumulative_sum)
+    print(sum(map(extract_gears, GEARS.values())))

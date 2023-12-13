@@ -1,37 +1,40 @@
 """Unint test for Day 3: Gear Ratios"""
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from unittest import mock
 import linecache
 
 import pytest
 
-from day_03.gear_ratios import extract_numbers, validate_number
+from day_03.gear_ratios import add_numbers_in_gears, extract_elements, extract_gears
 
 
 @pytest.mark.parametrize(
-    "data, line, expected_coordinate",
+    "data, line, regex, expected_coordinate",
     [
-        ["467..114..", 1, [(467, 1, 0, 3), (114, 1, 5, 8)]],
-        ["...*......", 2, None],
-        [".....+.58.", 6, [(58, 6, 7, 9)]],
-        ["...$.*....", 9, None]
+        ["467..114..", 1, r"\d+", [("467", 1, 0, 3), ("114", 1, 5, 8)]],
+        ["...*......", 2, r"\d+", []],
+        ["...*......", 2, r"\*", [("*", 2, 3, 4)]],
+        [".....+.58.", 6, r"\d+", [("58", 6, 7, 9)]],
+        ["...$.*....", 9, r"\d+", []]
     ]
 )
-def test_extract_numbers(data: str, line: int, expected_coordinate: List[Tuple[int]] | None) -> None:
+def test_extract_elements(data: str, line: int, regex: str, expected_coordinate: List[Tuple[int]]) -> None:
     """
-    Test extract_numbers function
+    Test extract_elements function
 
     Parameters
     ----------
     data : str
-        Input data
+        Line of data.
     line : int
-        Line number
-    expected_coordinate : List[Tuple[int]] | None
-        List with expected number coordinate
+        Line number.
+    regex : str
+        Regex to extract elements.
+    expected_coordinate : List[Tuple[int]]
+        Expected list with elements and their coordinates.
     """
-    coordinate = extract_numbers(data, line)
+    coordinate = extract_elements(data, line, regex)
     assert coordinate == expected_coordinate
     if coordinate:
         assert isinstance(coordinate, list)
@@ -41,41 +44,58 @@ def test_extract_numbers(data: str, line: int, expected_coordinate: List[Tuple[i
 
 
 @pytest.mark.parametrize(
-    "number, mock_lines, expected_number",
+    "gear, mock_lines, expected_dict",
     [
-        [(35, 3, 2, 4), ["...*......", "..35..633.", "......#..."], 35],
-        [(114, 1, 5, 8), ["no upper", "467..114..", "...*......"], 0],
-        [(467, 1, 0, 3), ["no upper", "467..114..", "...*......"], 467],
+        [{("*", 2, 3, 4): []}, ["467..114..", "...*......", "..35..633."], {("*", 2, 3, 4): [("467", 1, 0, 3), ("35", 3, 2, 4)]}],
+        [{("*", 2, 3, 4): []}, ["467..114..", "...*......", "......633."], {("*", 2, 3, 4): [("467", 1, 0, 3)]}],
     ]
 )
-def test_validate_number(number: Tuple[int], mock_lines: List[str], expected_number: int) -> None:
+def test_add_numbers_in_gears(gear: Dict[Tuple[str | int], List], mock_lines: List[str], expected_dict: Dict[Tuple[str | int], List[Tuple[str | int]]]) -> None:
     """
-    Test validate_number function
+    Test add_numbers_in_gears function
 
     Parameters
     ----------
-    number : Tuple[int]
-        Number and its coordinates
+    gear : Dict[Tuple[str  |  int], List]
+        Dictionary with gears.
     mock_lines : List[str]
-        Mock upper, mid and lower lines
-    expected_number : int
-        Expected valid number
+        Mock upper, mid and lower lines.
+    expected_dict : Dict[Tuple[str  |  int], List[Tuple[str  |  int]]]
+        Expected dictionary with gears.
     """
-    with mock.patch(
-        "day_03.gear_ratios.DATA_PATH", new="day_03/test_data"
-        ), mock.patch(
-        "day_03.gear_ratios.TOTAL_LINES", new=10
-        ), mock.patch(
-        "day_03.gear_ratios.MAX_RIGHT", new=11
-        ), mock.patch.object(
-            linecache, "getline"
-            ) as mock_getline:
-        mock_responses = {
-            ("day_03/test_data", number[1] - 1): mock_lines[0],
-            ("day_03/test_data", number[1]): mock_lines[1],
-            ("day_03/test_data", number[1] + 1): mock_lines[2]
-        }
-        mock_getline.side_effect = lambda filename, lineno: mock_responses.get((filename, lineno))
-        number = validate_number(number)
+    for coordinate in gear:
+        with mock.patch(
+            "day_03.gear_ratios.DATA_PATH", new="day_03/test_data"
+            ), mock.patch.object(
+                linecache, "getline"
+                ) as mock_getline:
+            mock_responses = {
+                ("day_03/test_data", coordinate[1] - 1): mock_lines[0],
+                ("day_03/test_data", coordinate[1]): mock_lines[1],
+                ("day_03/test_data", coordinate[1] + 1): mock_lines[2]
+            }
+            mock_getline.side_effect = lambda filename, lineno: mock_responses.get((filename, lineno))
+            test_gear = add_numbers_in_gears(gear)
 
-        assert number == expected_number
+            assert test_gear == expected_dict
+
+
+@pytest.mark.parametrize(
+    "numbers, expected_return",
+    [
+        [[("467", 1, 0, 3), ("35", 3, 2, 4)], 16345],
+        [[("467", 1, 0, 3)], 0],
+    ]
+)
+def test_extract_gears(numbers: List[Tuple[str | int]], expected_return: int) -> None:
+    """
+    Test extract_gears function
+
+    Parameters
+    ----------
+    numbers : List[Tuple[str  |  int]]
+        Numbers in gear.
+    expected_return : int
+        Expected number of gears.
+    """
+    assert extract_gears(numbers) == expected_return
