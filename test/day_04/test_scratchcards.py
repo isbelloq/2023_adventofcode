@@ -8,7 +8,7 @@ from day_04.scratchcards import data_parser
 @pytest.mark.parametrize(
     "input_data, expected_power",
     [
-        ["Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53", 3],
+        ["Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53", 4],
         ["Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11", None]
     ]
 )
